@@ -1,6 +1,6 @@
 ﻿open System
 
-//--------------TYPES----------------
+//--------------PARSER TYPES----------------
 
 type Result<'a, 'b> = 
     | Success of 'a
@@ -8,6 +8,21 @@ type Result<'a, 'b> =
 
 type Parser<'a> = Parser of (char list -> Result<'a * char list, string>)
 
+type Atom =
+    | Variable of string
+    | Value of decimal
+
+type Operator =
+    | Addition of string
+    | Subtraction of string
+    | Multiplication of string
+    | Division of string
+    | Equals of string
+
+type Expression<'a> =
+    | Atom
+    | E of Expression<'a> * Operator * Expression<'a>
+ 
 //--------------PARSER COMBINATORS----------------
 
 let run parser inputChars =
@@ -155,17 +170,30 @@ let digitParser = anyOfParser ['0'..'9']
 
 let digitsParser = many1 digitParser
 
-let decimalParser = opt (charParser '-') .>>. digitsParser 
+let decimalParser = opt (charParser '-') .>>. digitsParser |>> signedCharListToDecimal
 
 let alphabetParser = anyOfParser ['a'..'z']
 
 let stringParser = many1 alphabetParser |> pMap charListToString
 
-let operatorParser = anyOfParser ['+'; '-'; '*'; '/']
+let operatorParser = 
+    let innerParser chars =
+        match run (anyOfParser ['+'; '-'; '*'; '/'; '=']) chars with
+        | Failure msg -> Failure msg
+        | Success (operator, remainingChars) ->
+            match operator with
+                | '+' -> Success (Addition("+"), remainingChars)
+                | '-' -> Success (Subtraction("-"), remainingChars)
+                | '*' -> Success (Multiplication("*"), remainingChars)
+                | '/' -> Success (Division("/"), remainingChars)
+                | '=' -> Success (Equals("="), remainingChars)
+    Parser innerParser
+        
+let variableParser = stringParser
 
-let expressionParser = stringParser .>> whitespaceParser .>>. operatorParser .>> whitespaceParser .>>. stringParser
+let valueParser = decimalParser
 
-let result1 = run decimalParser (stringToCharList "ab ")
+let result1 = run operatorParser (stringToCharList "=1 ab ")
 
 //----------------------INTERPRETER----------------------------
 
@@ -176,13 +204,14 @@ let evaluate env input =
 
 let respond env input =
     let newEnv, response = evaluate env input
-    printfn "> %s" response
+    printfn ":> %s" response
     newEnv
 
 let rec repl env =
+    printf "<: "
     let newInput = Console.ReadLine()
     let newEnv = respond env newInput
     repl newEnv
 
-//repl env
+repl env
 
