@@ -8,7 +8,7 @@
     <ProjectGuid>bb195ce1-5cdf-4c47-a257-9478d307548d</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>Scratch</RootNamespace>
-    <AssemblyName>Scratch</AssemblyName>
+    <AssemblyName>Calcy</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFSharpCoreVersion>4.4.0.0</TargetFSharpCoreVersion>
