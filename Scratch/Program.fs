@@ -153,7 +153,7 @@ let opt p =
     let none = pReturn None
     some <|> none
 
-//------------------------HELPER FUNCTIONS-----------------
+//------------------------HELPER FUNCTIONS-----------------------
 
 let stringToCharList str =
     List.ofSeq str
