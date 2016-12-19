@@ -1,6 +1,6 @@
 ﻿open System
 
-//--------------PARSER TYPES----------------
+//--------------TYPES----------------
 
 type Result<'a, 'b> = 
     | Success of 'a
@@ -21,7 +21,7 @@ type Operator =
 
 type Expression<'a> =
     | Atom
-    | E of Expression<'a> * Operator * Expression<'a>
+    | Exp of Expression<'a> * Operator * Expression<'a>
  
 //--------------PARSER COMBINATORS----------------
 
@@ -102,6 +102,17 @@ let ( >>. ) p1 p2 =
 
 let lift2 twoParameterFn parser1 parser2 = 
     pReturn twoParameterFn <*> parser1 <*> parser2
+
+let pBind parserProducingFunction parser =
+    let innerParser chars =
+        match run parser chars with
+        | Failure msg -> Failure msg
+        | Success (result, remaining) ->
+            let parser2 = parserProducingFunction result
+            run parser2 remaining
+    Parser innerParser
+
+let ( >>= ) parser parserProducerFn = pBind parserProducerFn parser
 
 let rec batchParser parsers = 
     let concat head tail = head :: tail
@@ -189,11 +200,15 @@ let operatorParser =
                 | '=' -> Success (Equals("="), remainingChars)
     Parser innerParser
         
-let variableParser = stringParser
+let variableParser = stringParser |>> (fun x -> Variable(x))
 
-let valueParser = decimalParser
+let valueParser = decimalParser |>> (fun x -> Value(x))
 
-let result1 = run operatorParser (stringToCharList "=1 ab ")
+let atomParser = variableParser <|> valueParser
+
+
+ 
+let result1 = run atomParser (stringToCharList "xab ")
 
 //----------------------INTERPRETER----------------------------
 
@@ -201,6 +216,8 @@ let env = Map.empty
 
 let evaluate env input =
     env, input
+
+//-----------------------REPL-----------------------------------
 
 let respond env input =
     let newEnv, response = evaluate env input
