@@ -18,6 +18,7 @@ type Operator =
 type Atom =
     | Variable of string
     | Value of decimal
+    | Operator of Operator
 
 type Expression<'a> =
     | Atom
@@ -203,9 +204,13 @@ let variableParser = stringParser |>> (fun x -> Variable(x))
 
 let valueParser = decimalParser |>> (fun x -> Value(x))
 
+let operationParser = operatorParser |>> (fun x -> Operator(x))
+
 let atomParser = variableParser <|> valueParser
 
-let result1 = run operatorParser (stringToCharList "+1 ab")
+let singleExpressionParser = batchParser [atomParser; operationParser; atomParser]
+
+let result1 = run singleExpressionParser (stringToCharList "a+1 ab")
 
 //----------------------INTERPRETER----------------------------
 
