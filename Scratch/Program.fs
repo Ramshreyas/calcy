@@ -8,16 +8,16 @@ type Result<'a, 'b> =
 
 type Parser<'a> = Parser of (char list -> Result<'a * char list, string>)
 
-type Atom =
-    | Variable of string
-    | Value of decimal
-
 type Operator =
     | Addition of string
     | Subtraction of string
     | Multiplication of string
     | Division of string
     | Equals of string
+
+type Atom =
+    | Variable of string
+    | Value of decimal
 
 type Expression<'a> =
     | Atom
@@ -153,6 +153,8 @@ let opt p =
     let none = pReturn None
     some <|> none
 
+
+
 //------------------------HELPER FUNCTIONS-----------------------
 
 let stringToCharList str =
@@ -188,17 +190,14 @@ let alphabetParser = anyOfParser ['a'..'z']
 let stringParser = many1 alphabetParser |> pMap charListToString
 
 let operatorParser = 
-    let innerParser chars =
-        match run (anyOfParser ['+'; '-'; '*'; '/'; '=']) chars with
-        | Failure msg -> Failure msg
-        | Success (operator, remainingChars) ->
-            match operator with
-                | '+' -> Success (Addition("+"), remainingChars)
-                | '-' -> Success (Subtraction("-"), remainingChars)
-                | '*' -> Success (Multiplication("*"), remainingChars)
-                | '/' -> Success (Division("/"), remainingChars)
-                | '=' -> Success (Equals("="), remainingChars)
-    Parser innerParser
+    anyOfParser ['+'; '-'; '*'; '/'; '='] 
+    |>> (fun x ->
+            match x with
+                | '+' -> Addition("+")
+                | '-' -> Subtraction("-")
+                | '*' -> Multiplication("*")
+                | '/' -> Division("/")
+                | '=' -> Equals("="))
         
 let variableParser = stringParser |>> (fun x -> Variable(x))
 
@@ -206,9 +205,7 @@ let valueParser = decimalParser |>> (fun x -> Value(x))
 
 let atomParser = variableParser <|> valueParser
 
-
- 
-let result1 = run atomParser (stringToCharList "xab ")
+let result1 = run operatorParser (stringToCharList "+1 ab")
 
 //----------------------INTERPRETER----------------------------
 
