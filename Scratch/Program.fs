@@ -212,11 +212,9 @@ let operationParser = operatorParser |>> (fun x -> Operator(x))
 
 let atomParser = variableParser <|> valueParser
 
-let singleExpressionParser = batchParser [atomParser; operationParser; atomParser] |>> (fun x -> Expression(x))
+let singleExpressionParser = atomParser .>>. operationParser .>>. atomParser |>> flattenTuple
 
-let expressionParser = atomParser .>>. operationParser .>>. atomParser |>> flattenTuple
-
-let result1 = run expressionParser (stringToCharList " a + 1 ")
+let result1 = run singleExpressionParser (stringToCharList " a + 1 ")
 
 //----------------------INTERPRETER----------------------------
 
