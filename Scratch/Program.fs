@@ -204,9 +204,9 @@ let operatorParser =
                 | '/' -> Division("/")
                 | '=' -> Equals("="))
         
-let variableParser = opt (charParser ' ') >>. stringParser .>> opt (charParser ' ') |>> (fun x -> Variable(x))
+let variableParser = opt whitespaceParser >>. stringParser .>> opt whitespaceParser |>> (fun x -> Variable(x))
 
-let valueParser = opt (charParser ' ') >>. decimalParser .>> opt (charParser ' ') |>> (fun x -> Value(x))
+let valueParser = opt whitespaceParser >>. decimalParser .>> opt whitespaceParser |>> (fun x -> Value(x))
 
 let operationParser = operatorParser |>> (fun x -> Operator(x))
 
@@ -220,18 +220,33 @@ let result1 = run singleExpressionParser (stringToCharList " a + 1 ")
 
 let env = Map.empty
 
-let parse env input =
+let parse (env, input) = 
     let inputChars = stringToCharList input
     match run singleExpressionParser inputChars with
-    | Failure msg -> env, msg
-    | Success (atomList, remaining) ->
-        printfn "%A" atomList
-        env, input
+    | Failure msg -> Failure (env, msg)
+    | Success (expression, remaining) ->
+        printfn "%A" expression
+        Success (env, expression)
+
+let evaluate result =
+    match result with
+    | Success (env, (atom1, operator, atom2)) -> Success (env, "Evaluated.")
+    | Failure (env, msg) -> Failure (env, msg)
+    
+let format result =
+    match result with
+    | Success (env, response) -> env, response
+    | Failure (env, errorMsg) -> env, errorMsg 
 
 //-----------------------REPL-----------------------------------
 
 let respond env input =
-    let newEnv, response = parse env input
+    let newEnv, response = 
+        (env, input)
+        |> parse
+        |> evaluate
+        |> format
+
     printfn ":> %A" response
     newEnv
 
