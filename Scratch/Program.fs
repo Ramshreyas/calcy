@@ -20,9 +20,9 @@ type Atom =
     | Value of decimal
     | Operator of Operator
 
-type Expression<'a> =
+type Expression =
     | Atom
-    | Exp of Expression<'a> * Operator * Expression<'a>
+    | Expression of List<Atom>
  
 //--------------PARSER COMBINATORS----------------
 
@@ -174,6 +174,10 @@ let signedCharListToDecimal (sign, chars) =
     | Some _ -> -decimal
     | None -> decimal
 
+let flattenTuple nestedTuple = 
+    match nestedTuple with
+    | ((atom1, operator), atom2) -> (atom1, operator, atom2)
+
 //-------------------------Parsers------------------------------
 
 let whiteCharParser = anyOfParser [' '; '\t']
@@ -200,30 +204,37 @@ let operatorParser =
                 | '/' -> Division("/")
                 | '=' -> Equals("="))
         
-let variableParser = stringParser |>> (fun x -> Variable(x))
+let variableParser = opt (charParser ' ') >>. stringParser .>> opt (charParser ' ') |>> (fun x -> Variable(x))
 
-let valueParser = decimalParser |>> (fun x -> Value(x))
+let valueParser = opt (charParser ' ') >>. decimalParser .>> opt (charParser ' ') |>> (fun x -> Value(x))
 
 let operationParser = operatorParser |>> (fun x -> Operator(x))
 
 let atomParser = variableParser <|> valueParser
 
-let singleExpressionParser = batchParser [atomParser; operationParser; atomParser]
+let singleExpressionParser = batchParser [atomParser; operationParser; atomParser] |>> (fun x -> Expression(x))
 
-let result1 = run singleExpressionParser (stringToCharList "a+1 ab")
+let expressionParser = atomParser .>>. operationParser .>>. atomParser |>> flattenTuple
+
+let result1 = run expressionParser (stringToCharList " a + 1 ")
 
 //----------------------INTERPRETER----------------------------
 
 let env = Map.empty
 
-let evaluate env input =
-    env, input
+let parse env input =
+    let inputChars = stringToCharList input
+    match run singleExpressionParser inputChars with
+    | Failure msg -> env, msg
+    | Success (atomList, remaining) ->
+        printfn "%A" atomList
+        env, input
 
 //-----------------------REPL-----------------------------------
 
 let respond env input =
-    let newEnv, response = evaluate env input
-    printfn ":> %s" response
+    let newEnv, response = parse env input
+    printfn ":> %A" response
     newEnv
 
 let rec repl env =
