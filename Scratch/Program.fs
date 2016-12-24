@@ -18,12 +18,11 @@ type Operator =
 type Atom =
     | Variable of string
     | Value of decimal
-    | Operator of Operator
 
 type Expression =
-    | Atom
-    | Expression of List<Atom>
- 
+    | Node of Atom
+    | Triple of Expression * Operator * Expression
+
 //--------------PARSER COMBINATORS----------------
 
 let run parser inputChars =
@@ -208,13 +207,15 @@ let variableParser = opt whitespaceParser >>. stringParser .>> opt whitespacePar
 
 let valueParser = opt whitespaceParser >>. decimalParser .>> opt whitespaceParser |>> (fun x -> Value(x))
 
-let operationParser = operatorParser |>> (fun x -> Operator(x))
+let operationParser = operatorParser 
 
-let atomParser = variableParser <|> valueParser
+let atomParser = variableParser <|> valueParser |>> (fun x -> Node(x))
 
-let singleExpressionParser = atomParser .>>. operationParser .>>. atomParser |>> flattenTuple
+let simpleExpressionParser = atomParser .>>. operationParser .>>. atomParser |>> flattenTuple |>> (fun x -> Triple(x))
 
-let result1 = run singleExpressionParser (stringToCharList " a + 1 ")
+let expressionParser = simpleExpressionParser <|> atomParser
+
+let result1 = run expressionParser (stringToCharList " a + 1 ")
 
 //----------------------INTERPRETER----------------------------
 
@@ -222,7 +223,7 @@ let env = Map.empty
 
 let parse (env, input) = 
     let inputChars = stringToCharList input
-    match run singleExpressionParser inputChars with
+    match run expressionParser inputChars with
     | Failure msg -> Failure (env, msg)
     | Success (expression, remaining) ->
         printfn "%A" expression
@@ -230,7 +231,7 @@ let parse (env, input) =
 
 let evaluate result =
     match result with
-    | Success (env, (atom1, operator, atom2)) -> Success (env, "Evaluated.")
+    | Success (env, expression) -> Success (env, "Evaluated.")
     | Failure (env, msg) -> Failure (env, msg)
     
 let format result =
