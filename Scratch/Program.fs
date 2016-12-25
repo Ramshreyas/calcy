@@ -211,15 +211,29 @@ let operationParser = operatorParser
 
 let atomParser = variableParser <|> valueParser |>> (fun x -> Node(x))
 
-let simpleExpressionParser = atomParser .>>. operationParser .>>. atomParser |>> flattenTuple |>> (fun x -> Triple(x))
+let tripleParser = atomParser .>>. operationParser .>>. atomParser |>> flattenTuple |>> (fun x -> Triple(x))
 
-let expressionParser = simpleExpressionParser <|> atomParser
+let singleExpressionParser = tripleParser <|> atomParser
 
-let result1 = run expressionParser (stringToCharList " a + 1 ")
+let multipleExpressionParser = singleExpressionParser .>>. operatorParser .>>. singleExpressionParser |>> flattenTuple |>> (fun x -> Triple(x))
+
+let expressionParser = multipleExpressionParser <|> singleExpressionParser 
+
+let commandParser = many1 expressionParser
+
+let result1 = run commandParser (stringToCharList " a + 1 + 2 + 2 + 2")
 
 //----------------------INTERPRETER----------------------------
 
 let env = Map.empty
+
+let calculate (env, triple) =
+    match triple with
+    | Triple (_, Addition "+", _) -> Success (env, "Addition")
+    | Triple (_, Subtraction "-", _) -> Success (env, "Subtraction")
+    | Triple (_, Multiplication "*", _) -> Success (env, "Multiplication")
+    | Triple (_, Division "/", _) -> Success (env, "Division")
+    | Triple (_, Equals "=", _) -> Success (env, "Equals")
 
 let parse (env, input) = 
     let inputChars = stringToCharList input
@@ -231,7 +245,10 @@ let parse (env, input) =
 
 let evaluate result =
     match result with
-    | Success (env, expression) -> Success (env, "Evaluated.")
+    | Success (env, expression) -> 
+        match expression with
+        | Node node -> Success (env, "Node Found.")
+        | Triple (node1, operator, node2) -> calculate (env, expression)
     | Failure (env, msg) -> Failure (env, msg)
     
 let format result =
