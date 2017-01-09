@@ -227,22 +227,22 @@ let result1 = run commandParser (stringToCharList " a + 1 + 2 + 2 + 2")
 
 //----------------------INTERPRETER----------------------------
 
-let env = Map.empty
+let env = Map.empty.Add("x", "1")
+
+let set (env, exp) =
+    match exp with
+    | Triple (Node(Variable x), Equals "=", Node(Value y)) -> 
+        let newEnv = env.Add(x, sprintf "%M" y)
+        Success (env, exp)
+    | _ -> Failure "Error"
 
 let resolve variable =
     match variable with
     | Node(Variable x) -> Success x
     | _ -> Failure "Error"
 
-let set (env, exp) =
+let add (env, exp) = 
     match exp with
-    | Triple (Node(Variable x), Equals "=", Node(Value y)) -> 
-        let newEnv = env.Add(x, y)
-        Success (env, exp)
-    | _ -> Failure "Error"
-
-let add (env, triple) = 
-    match triple with
     | Triple (Node(Value x), Addition "+", Node(Value y)) -> Success (env, sprintf "%M" (x+y))
     | _ -> Failure (env, "Invalid syntax")
 
