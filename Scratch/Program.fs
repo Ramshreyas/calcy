@@ -229,15 +229,21 @@ let result1 = run commandParser (stringToCharList " a + 1 + 2 + 2 + 2")
 
 let env = Map.empty
 
+let add (env, triple) = 
+    match triple with
+    | Triple (Node(Value x), Addition "+", Node(Value y)) -> Success (env, sprintf "%M" (x+y))
+    | _ -> Failure (env, "Invalid syntax")
+
 let calculate (env, triple) =
     match triple with
-    | Triple (_, Addition "+", _) -> Success (env, "Addition")
+    | Triple (_, Addition "+", _) -> add (env, triple)
     | Triple (_, Subtraction "-", _) -> Success (env, "Subtraction")
     | Triple (_, Multiplication "*", _) -> Success (env, "Multiplication")
     | Triple (_, Division "/", _) -> Success (env, "Division")
     | Triple (_, Equals "=", _) -> Success (env, "Equals")
     | Node(Variable x) -> Success (env, x)
-    | Node(Value x) -> Success (env, sprintf "%M" x)   
+    | Node(Value x) -> Success (env, sprintf "%M" x)  
+    | _ -> Failure (env, "Invalid input") 
 
 let parse (env, input) = 
     let inputChars = stringToCharList input
