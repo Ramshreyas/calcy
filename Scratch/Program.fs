@@ -211,6 +211,8 @@ let operationParser = operatorParser
 
 let atomParser = variableParser <|> valueParser |>> (fun x -> Node(x))
 
+//------------------------Expression Parsers-----------------------
+
 let tripleParser = atomParser .>>. operationParser .>>. atomParser |>> flattenTuple |>> (fun x -> Triple(x))
 
 let singleExpressionParser = tripleParser <|> atomParser
@@ -234,6 +236,8 @@ let calculate (env, triple) =
     | Triple (_, Multiplication "*", _) -> Success (env, "Multiplication")
     | Triple (_, Division "/", _) -> Success (env, "Division")
     | Triple (_, Equals "=", _) -> Success (env, "Equals")
+    | Node(Variable x) -> Success (env, x)
+    | Node(Value x) -> Success (env, sprintf "%M" x)   
 
 let parse (env, input) = 
     let inputChars = stringToCharList input
@@ -247,7 +251,7 @@ let evaluate result =
     match result with
     | Success (env, expression) -> 
         match expression with
-        | Node node -> Success (env, "Node Found.")
+        | Node node -> calculate (env, expression)
         | Triple (node1, operator, node2) -> calculate (env, expression)
     | Failure (env, msg) -> Failure (env, msg)
     
