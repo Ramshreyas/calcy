@@ -1,4 +1,5 @@
 ﻿open System
+open Microsoft.FSharp.Collections
 
 //--------------TYPES----------------
 
@@ -227,14 +228,12 @@ let result1 = run commandParser (stringToCharList " a + 1 + 2 + 2 + 2")
 
 //----------------------INTERPRETER----------------------------
 
-let env = Map.empty.Add("x", "1")
-
-let set (env, exp) =
+let set (env: Map<string, string>, exp) =
     match exp with
     | Triple (Node(Variable x), Equals "=", Node(Value y)) -> 
         let newEnv = env.Add(x, sprintf "%M" y)
-        Success (env, exp)
-    | _ -> Failure "Error"
+        Success (newEnv, sprintf "%s = %M" x y)
+    | _ -> Failure (env, "Error")
 
 let resolve variable =
     match variable with
@@ -243,7 +242,8 @@ let resolve variable =
 
 let add (env, exp) = 
     match exp with
-    | Triple (Node(Value x), Addition "+", Node(Value y)) -> Success (env, sprintf "%M" (x+y))
+    | Triple (Node(Value x), Addition "+", Node(Value y)) -> 
+        Success (env, sprintf "%M" (x+y))
     | _ -> Failure (env, "Invalid syntax")
 
 let calculate (env, triple) =
@@ -252,7 +252,7 @@ let calculate (env, triple) =
     | Triple (_, Subtraction "-", _) -> Success (env, "Subtraction")
     | Triple (_, Multiplication "*", _) -> Success (env, "Multiplication")
     | Triple (_, Division "/", _) -> Success (env, "Division")
-    | Triple (_, Equals "=", _) -> Success (env, "Equals")
+    | Triple (_, Equals "=", _) -> set (env, triple)
     | Node(Variable x) -> Success (env, x)
     | Node(Value x) -> Success (env, sprintf "%M" x)  
     | _ -> Failure (env, "Invalid input") 
@@ -295,6 +295,8 @@ let rec repl env =
     let newInput = Console.ReadLine()
     let newEnv = respond env newInput
     repl newEnv
+
+let env : Map<string, string> = Map.empty
 
 repl env
 
