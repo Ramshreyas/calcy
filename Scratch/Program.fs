@@ -235,7 +235,7 @@ let set (env: Map<string, string>, exp) =
         Success (newEnv, sprintf "%s = %M" x y)
     | _ -> Failure (env, "Error")
 
-let resolve variable =
+let resolve env variable =
     match variable with
     | Node(Variable x) -> Success x
     | _ -> Failure "Error"
@@ -246,13 +246,13 @@ let add (env, exp) =
         Success (env, sprintf "%M" (x+y))
     | _ -> Failure (env, "Invalid syntax")
 
-let calculate (env, triple) =
-    match triple with
-    | Triple (_, Addition "+", _) -> add (env, triple)
+let calculate (env, exp) =
+    match exp with
+    | Triple (_, Addition "+", _) -> add (env, exp)
     | Triple (_, Subtraction "-", _) -> Success (env, "Subtraction")
     | Triple (_, Multiplication "*", _) -> Success (env, "Multiplication")
     | Triple (_, Division "/", _) -> Success (env, "Division")
-    | Triple (_, Equals "=", _) -> set (env, triple)
+    | Triple (_, Equals "=", _) -> set (env, exp)
     | Node(Variable x) -> Success (env, x)
     | Node(Value x) -> Success (env, sprintf "%M" x)  
     | _ -> Failure (env, "Invalid input") 
