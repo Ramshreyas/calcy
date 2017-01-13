@@ -233,8 +233,8 @@ let set (env : Map<string, string>, exp) =
         Success (newEnv, sprintf "%s = %M" x y)
     | _ -> Failure (env, "Error")
 
-let resolve (env: Map<string, string>, variable) =
-    match variable with
+let resolve (env: Map<string, string>, node) =
+    match node with
     | Node(Variable x) -> 
         let result = env.TryFind x
         match result with
@@ -243,19 +243,27 @@ let resolve (env: Map<string, string>, variable) =
     | Node(Value x) -> Success x
     | _ -> Failure "Error"
 
-let add (env, exp) = 
-    match exp with
-    | Triple (x, Addition "+", y) -> 
-        let xResolved = resolve (env, x)
-        match xResolved with
-        | Failure msg -> Failure (env, msg)
+let resolveTriple (env: Map<string, string>, triple) =
+    match triple with
+    | Triple (xNode, operator, yNode) ->
+        let xResult = resolve (env, xNode)
+        match xResult with
+        | Failure msg -> Failure msg
         | Success xValue ->
-            let yResolved = resolve (env, y)
-            match yResolved with
-            | Failure msg -> Failure (env, msg)
-            | Success yValue ->
-                Success (env, sprintf "%M" (xValue + yValue))
-    | _ -> Failure (env, "Invalid syntax")
+            let yResult = resolve (env, yNode)
+            match yResult with
+            | Failure msg -> Failure msg
+            | Success yValue -> Success (xValue, operator, yValue)
+    | _ -> Failure "Error"
+
+let add (env, triple) =
+    let tuple = resolveTriple (env, triple)
+    match tuple with
+    | Success (xValue, Addition "+", yValue) ->
+        Success (env, sprintf "%M" (xValue + yValue))
+    | Failure msg -> Failure (env, msg)
+
+
 
 let calculate (env, exp) =
     match exp with
