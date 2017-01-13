@@ -263,8 +263,6 @@ let add (env, triple) =
         Success (env, sprintf "%M" (xValue + yValue))
     | Failure msg -> Failure (env, msg)
 
-
-
 let calculate (env, exp) =
     match exp with
     | Triple (_, Addition "+", _) -> add (env, exp)
