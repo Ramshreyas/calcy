@@ -1,5 +1,4 @@
 ﻿open System
-open Microsoft.FSharp.Collections
 
 //--------------TYPES----------------
 
