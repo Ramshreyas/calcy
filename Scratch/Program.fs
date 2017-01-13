@@ -154,8 +154,6 @@ let opt p =
     let none = pReturn None
     some <|> none
 
-
-
 //------------------------HELPER FUNCTIONS-----------------------
 
 let stringToCharList str =
