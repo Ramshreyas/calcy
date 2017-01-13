@@ -228,22 +228,35 @@ let result1 = run commandParser (stringToCharList " a + 1 + 2 + 2 + 2")
 
 //----------------------INTERPRETER----------------------------
 
-let set (env: Map<string, string>, exp) =
+let set (env : Map<string, string>, exp) =
     match exp with
     | Triple (Node(Variable x), Equals "=", Node(Value y)) -> 
         let newEnv = env.Add(x, sprintf "%M" y)
         Success (newEnv, sprintf "%s = %M" x y)
     | _ -> Failure (env, "Error")
 
-let resolve env variable =
+let resolve (env: Map<string, string>, variable) =
     match variable with
-    | Node(Variable x) -> Success x
+    | Node(Variable x) -> 
+        let result = env.TryFind x
+        match result with
+        | Some value -> Success (Decimal.Parse value)
+        | None -> Failure (sprintf "Variable %s not declared" x)
+    | Node(Value x) -> Success x
     | _ -> Failure "Error"
 
 let add (env, exp) = 
     match exp with
-    | Triple (Node(Value x), Addition "+", Node(Value y)) -> 
-        Success (env, sprintf "%M" (x+y))
+    | Triple (x, Addition "+", y) -> 
+        let xResolved = resolve (env, x)
+        match xResolved with
+        | Failure msg -> Failure (env, msg)
+        | Success xValue ->
+            let yResolved = resolve (env, y)
+            match yResolved with
+            | Failure msg -> Failure (env, msg)
+            | Success yValue ->
+                Success (env, sprintf "%M" (xValue + yValue))
     | _ -> Failure (env, "Invalid syntax")
 
 let calculate (env, exp) =
