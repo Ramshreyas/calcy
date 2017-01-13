@@ -263,12 +263,33 @@ let add (env, triple) =
         Success (env, sprintf "%M" (xValue + yValue))
     | Failure msg -> Failure (env, msg)
 
+let subtract (env, triple) =
+    let tuple = resolveTriple (env, triple)
+    match tuple with
+    | Success (xValue, Subtraction "-", yValue) ->
+        Success (env, sprintf "%M" (xValue - yValue))
+    | Failure msg -> Failure (env, msg)
+
+let multiply (env, triple) =
+    let tuple = resolveTriple (env, triple)
+    match tuple with
+    | Success (xValue, Multiplication "*", yValue) ->
+        Success (env, sprintf "%M" (xValue * yValue))
+    | Failure msg -> Failure (env, msg)
+
+let divide (env, triple) =
+    let tuple = resolveTriple (env, triple)
+    match tuple with
+    | Success (xValue, Division "/", yValue) ->
+        Success (env, sprintf "%M" (xValue / yValue))
+    | Failure msg -> Failure (env, msg)
+
 let calculate (env, exp) =
     match exp with
     | Triple (_, Addition "+", _) -> add (env, exp)
-    | Triple (_, Subtraction "-", _) -> Success (env, "Subtraction")
-    | Triple (_, Multiplication "*", _) -> Success (env, "Multiplication")
-    | Triple (_, Division "/", _) -> Success (env, "Division")
+    | Triple (_, Subtraction "-", _) -> subtract (env, exp)
+    | Triple (_, Multiplication "*", _) -> multiply (env, exp)
+    | Triple (_, Division "/", _) -> divide (env, exp)
     | Triple (_, Equals "=", _) -> set (env, exp)
     | Node(Variable x) -> Success (env, x)
     | Node(Value x) -> Success (env, sprintf "%M" x)  
