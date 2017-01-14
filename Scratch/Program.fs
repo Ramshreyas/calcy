@@ -242,12 +242,12 @@ let resolve (env: Map<string, string>, node) =
 
 let resolveTriple (env: Map<string, string>, triple) =
     match triple with
-    | Triple (xNode, operator, yNode) ->
-        let xResult = resolve (env, xNode)
+    | Triple (x, operator, y) ->
+        let xResult = resolve (env, x)
         match xResult with
         | Failure msg -> Failure msg
         | Success xValue ->
-            let yResult = resolve (env, yNode)
+            let yResult = resolve (env, y)
             match yResult with
             | Failure msg -> Failure msg
             | Success yValue -> Success (xValue, operator, yValue)
