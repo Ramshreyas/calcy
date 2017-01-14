@@ -221,9 +221,7 @@ let expressionParser = multipleExpressionParser <|> singleExpressionParser
 
 let commandParser = many1 expressionParser
 
-let result1 = run commandParser (stringToCharList " a + 1 + 2 + 2 + 2")
-
-//----------------------INTERPRETER----------------------------
+//----------------------EVALUATOR----------------------------
 
 let set (env : Map<string, string>, exp) =
     match exp with
