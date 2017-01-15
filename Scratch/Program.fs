@@ -223,11 +223,13 @@ let commandParser = many1 expressionParser
 
 //----------------------EVALUATOR----------------------------
 
+
+
 let set (env : Map<string, string>, exp) =
     match exp with
     | Triple (Node(Variable x), Equals "=", Node(Value y)) -> 
         let newEnv = env.Add(x, sprintf "%M" y)
-        Success (newEnv, sprintf "%s = %M" x y)
+        Success (newEnv, Value y)
     | _ -> Failure (env, "Error")
 
 let resolve (env: Map<string, string>, node) =
@@ -257,39 +259,44 @@ let add (env, triple) =
     let tuple = resolveTriple (env, triple)
     match tuple with
     | Success (xValue, Addition "+", yValue) ->
-        Success (env, sprintf "%M" (xValue + yValue))
+        Success (env, Value (xValue + yValue))
     | Failure msg -> Failure (env, msg)
 
 let subtract (env, triple) =
     let tuple = resolveTriple (env, triple)
     match tuple with
     | Success (xValue, Subtraction "-", yValue) ->
-        Success (env, sprintf "%M" (xValue - yValue))
+        Success (env, Value (xValue - yValue))
     | Failure msg -> Failure (env, msg)
 
 let multiply (env, triple) =
     let tuple = resolveTriple (env, triple)
     match tuple with
     | Success (xValue, Multiplication "*", yValue) ->
-        Success (env, sprintf "%M" (xValue * yValue))
+        Success (env, Value (xValue * yValue))
     | Failure msg -> Failure (env, msg)
 
 let divide (env, triple) =
     let tuple = resolveTriple (env, triple)
     match tuple with
     | Success (xValue, Division "/", yValue) ->
-        Success (env, sprintf "%M" (xValue / yValue))
+        Success (env, Value (xValue / yValue))
     | Failure msg -> Failure (env, msg)
 
-let calculate (env, exp) =
+let rec calculate (env, exp) =
     match exp with
-    | Triple (_, Addition "+", _) -> add (env, exp)
-    | Triple (_, Subtraction "-", _) -> subtract (env, exp)
-    | Triple (_, Multiplication "*", _) -> multiply (env, exp)
-    | Triple (_, Division "/", _) -> divide (env, exp)
-    | Triple (_, Equals "=", _) -> set (env, exp)
-    | Node(Variable x) -> Success (env, x)
-    | Node(Value x) -> Success (env, sprintf "%M" x)  
+    | Triple (Node x, Addition "+", Node y) -> add (env, exp)
+    | Triple (Node x, Subtraction "-", Node y) -> subtract (env, exp)
+    | Triple (Node x, Multiplication "*", Node y) -> multiply (env, exp)
+    | Triple (Node x, Division "/", Node y) -> divide (env, exp)
+    | Triple (Node x, Equals "=", Node y) -> set (env, exp)
+    | Node(Variable x) -> Success (env, Variable x)
+    | Node(Value x) -> Success (env, Value x)      
+    | Triple (Triple (a, innerOperator, b), outerOperator, c) -> 
+        let result = calculate (env, Triple (a, innerOperator, b))
+        match result with
+        | Success (env, value) -> calculate (env, Triple (Node value, outerOperator, c))
+        | Failure (env, msg) -> Failure (env, msg)
     | _ -> Failure (env, "Invalid input") 
 
 let parse (env, input) = 
@@ -310,7 +317,7 @@ let evaluate result =
     
 let format result =
     match result with
-    | Success (env, response) -> env, response
+    | Success (env, Value response) -> env, sprintf "%M" response
     | Failure (env, errorMsg) -> env, errorMsg 
 
 //-----------------------REPL-----------------------------------
@@ -322,7 +329,7 @@ let respond env input =
         |> evaluate
         |> format
 
-    printfn ":> %A" response
+    printfn ":> %s" response
     newEnv
 
 let rec repl env =
