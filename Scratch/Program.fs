@@ -213,17 +213,33 @@ let atomParser = variableParser <|> valueParser |>> (fun x -> Node(x))
 
 let tripleParser = atomParser .>>. operationParser .>>. atomParser |>> flattenTuple |>> (fun x -> Triple(x))
 
+let rhsParser = operationParser .>>. atomParser 
+
 let singleExpressionParser = tripleParser <|> atomParser
 
-let multipleExpressionParser = singleExpressionParser .>>. operatorParser .>>. singleExpressionParser |>> flattenTuple |>> (fun x -> Triple(x))
+let rec multipleExpressionParser = singleExpressionParser .>>. operatorParser .>>. singleExpressionParser |>> flattenTuple |>> (fun x -> Triple(x))
 
-let expressionParser = multipleExpressionParser <|> singleExpressionParser 
+let expressionParser = multipleExpressionParser <|> singleExpressionParser
 
-let commandParser = many1 expressionParser
+//let commandParser = many expressionParser
+let rec commandParser initializer chars = 
+    match run tripleParser chars with
+    | Success (triple, remainingChars) ->
+        match remainingChars with
+        | [] -> Success triple
+        | _ -> commandParser triple remainingChars
+    | Failure msg ->
+        match run rhsParser chars with
+        | Failure msg -> Failure msg
+        | Success ((operator, atom), subsequentChars) ->
+            let exp = (Triple (initializer, operator, atom))
+            match subsequentChars with
+            | [] -> Success exp
+            | _ -> commandParser exp subsequentChars
+
+let answer = commandParser (Triple(Node(Variable "a"), Addition "+", Node(Variable "b"))) (stringToCharList "a+b+c+d+e+f")
 
 //----------------------EVALUATOR----------------------------
-
-
 
 let set (env : Map<string, string>, exp) =
     match exp with
@@ -296,6 +312,11 @@ let rec calculate (env, exp) =
         let result = calculate (env, Triple (a, innerOperator, b))
         match result with
         | Success (env, value) -> calculate (env, Triple (Node value, outerOperator, c))
+        | Failure (env, msg) -> Failure (env, msg)
+    | Triple (Node a, operator, Triple (b, innerOperator, c)) -> 
+        let result = calculate (env, Triple (b, innerOperator, c))
+        match result with
+        | Success (env, value) -> calculate (env, Triple (Node a, operator, Node value))
         | Failure (env, msg) -> Failure (env, msg)
     | _ -> Failure (env, "Invalid input") 
 
