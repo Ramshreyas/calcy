@@ -215,13 +215,6 @@ let tripleParser = atomParser .>>. operationParser .>>. atomParser |>> flattenTu
 
 let rhsParser = operationParser .>>. atomParser 
 
-let singleExpressionParser = tripleParser <|> atomParser
-
-let rec multipleExpressionParser = singleExpressionParser .>>. operatorParser .>>. singleExpressionParser |>> flattenTuple |>> (fun x -> Triple(x))
-
-let expressionParser = multipleExpressionParser <|> singleExpressionParser
-
-//let commandParser = many expressionParser
 let rec commandParser initializer chars = 
     match run tripleParser chars with
     | Success (triple, remainingChars) ->
@@ -236,6 +229,8 @@ let rec commandParser initializer chars =
             match subsequentChars with
             | [] -> Success exp
             | _ -> commandParser exp subsequentChars
+
+let expressionParser = commandParser (Triple(Node(Variable "a"), Addition "+", Node(Variable "b")))
 
 let answer = commandParser (Triple(Node(Variable "a"), Addition "+", Node(Variable "b"))) (stringToCharList "a+b+c+d+e+f")
 
@@ -322,11 +317,11 @@ let rec calculate (env, exp) =
 
 let parse (env, input) = 
     let inputChars = stringToCharList input
-    match run expressionParser inputChars with
+    match expressionParser inputChars with
     | Failure msg -> Failure (env, msg)
-    | Success (expression, remaining) ->
-        printfn "%A" expression
-        Success (env, expression)
+    | Success triple ->
+        printfn "%A" triple
+        Success (env, triple)
 
 let evaluate result =
     match result with
