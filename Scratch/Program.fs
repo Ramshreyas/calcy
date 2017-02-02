@@ -205,7 +205,7 @@ let variableParser = opt whitespaceParser >>. stringParser .>> opt whitespacePar
 
 let valueParser = opt whitespaceParser >>. decimalParser .>> opt whitespaceParser |>> (fun x -> Value(x))
 
-let operationParser = operatorParser 
+let operationParser = opt whitespaceParser >>. operatorParser .>> opt whitespaceParser 
 
 let atomParser = variableParser <|> valueParser |>> (fun x -> Node(x))
 
